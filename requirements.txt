@@ -1,0 +1,4 @@
+llama-index-core==0.12.10.post1
+llama-parse==0.5.19
+llama-index-readers-file==0.4.2
+python-dotenv==1.0.1

@@ -1,0 +1,6 @@
+venv
+Llama-3.2-3B
+logs
+Llama-3.2-3B_fined_tuned
+dataset
+*.csv
