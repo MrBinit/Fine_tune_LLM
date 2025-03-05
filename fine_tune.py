@@ -39,7 +39,7 @@ model = AutoModelForCausalLM.from_pretrained(
     base_model,
     quantization_config=bnb_config,
     device_map="auto",
-    torch_dtype = torch.bfloat16,
+    torch_dtype = torch_dtype,
     attn_implementation=attn_implementation
 )
 print(model)
@@ -90,7 +90,7 @@ training_arguments = TrainingArguments(
     optim="paged_adamw_32bit",
     num_train_epochs=1,
     eval_strategy="steps",
-    eval_steps=0.2,e
+    eval_steps=0.2,
     logging_steps=1,
     warmup_steps=10,
     logging_strategy="steps",
@@ -99,7 +99,6 @@ training_arguments = TrainingArguments(
     bf16=True,
     group_by_length=True,
     logging_dir="./logs",
-    gradient_checkpointing=True,
     lr_scheduler_type="cosine",
     max_steps= 200,
 
