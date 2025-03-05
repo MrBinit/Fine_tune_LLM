@@ -39,6 +39,7 @@ model = AutoModelForCausalLM.from_pretrained(
     base_model,
     quantization_config=bnb_config,
     device_map="auto",
+    torch_dtype = torch.bfloat16,
     attn_implementation=attn_implementation
 )
 print(model)
@@ -65,17 +66,6 @@ train_size = int(0.8 * len(dataset))
 train_dataset = dataset.select(range(train_size))
 test_dataset = dataset.select(range(train_size, len(dataset)))
 
-# def find_all_linear_names(model):
-#     cls = bnb.nn.Linear4bit
-#     lora_module_names = set()
-#     for name, module in model.named_modules():
-#         if isinstance(module, cls):
-#             names = name.split('.')
-#             lora_module_names.add(names[0] if len(names) == 1 else names[-1])
-#     if 'lm_head' in lora_module_names: 
-#         lora_module_names.remove('lm_head')
-#     return list(lora_module_names)
-
 modules = ['k_proj', 'gate_proj', 'v_proj', 'up_proj', 'q_proj', 'o_proj', 'down_proj']
 
 peft_config = LoraConfig(
@@ -100,15 +90,19 @@ training_arguments = TrainingArguments(
     optim="paged_adamw_32bit",
     num_train_epochs=1,
     eval_strategy="steps",
-    eval_steps=0.2,
+    eval_steps=0.2,e
     logging_steps=1,
     warmup_steps=10,
     logging_strategy="steps",
     learning_rate=2e-4,
     fp16=False,
-    bf16=False,
+    bf16=True,
     group_by_length=True,
     logging_dir="./logs",
+    gradient_checkpointing=True,
+    lr_scheduler_type="cosine",
+    max_steps= 200,
+
 )
 
 # Setting sft parameters
