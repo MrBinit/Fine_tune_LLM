@@ -5,3 +5,4 @@ Llama-3.2-3B_fined_tuned
 dataset
 *.csv
 .env
+llama-3.2-3b-it-Ecommerce-ChatBot
