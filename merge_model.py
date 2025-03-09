@@ -38,6 +38,6 @@ outputs = model.generate(**inputs, max_new_tokens=150, num_return_sequences=1)
 text = tokenizer.decode(outputs[0], skip_special_tokens=True)
 print(text.split("assistant")[1])
 
-final_model_path = "llama-3.2-3b-it-Ecommerce-ChatBot"
+final_model_path = "llama-3.2-3b-Nepali-Language"
 model.save_pretrained(final_model_path)
 tokenizer.save_pretrained(final_model_path)

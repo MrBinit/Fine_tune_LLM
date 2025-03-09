@@ -1,18 +1,28 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col,isnan, when, count
-spark = SparkSession.builder \
-    .appName("Preprocessing") \
-    .getOrCreate()
+import os
 
 
-path = "/home/binit/fine_tune_LLama/dataset/extracted_text.csv"
-# df = spark.read.csv(path)
+def list_csv_columns(folder_paths):
+    spark = SparkSession.builder \
+        .appName("Preprocessing") \
+        .getOrCreate()
 
-df = spark.read.option("delimiter", ";").option("header", True).csv(path)
-print(df.show())
-print(df.columns)
+    csv_files = [f for f in os.listdir(folder_paths) if f.endswith('.csv')]
 
-# remove null values
-df.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in df.columns]).show()
-# df.na.drop().show(truncate=False)
-# df.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in df.columns]).show()
+    if not csv_files:
+        print("No CSV files found in the folder.")
+        return
+        
+    for csv_file in csv_files:
+        csv_path = os.path.join(folder_paths, csv_file)
+
+        try:
+            df = spark.read.csv(csv_path, header = True, inferSchema=True)
+            print(f"Columns in {csv_file}: {df.columns}")
+
+        except Exception as e:
+            print(f"error reading {csv_file}: {e}")
+    spark.stop()
+
+list_csv_columns('/home/binit/fine_tune_LLama/dataset')

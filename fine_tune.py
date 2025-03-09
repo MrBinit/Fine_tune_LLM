@@ -28,10 +28,9 @@ model = AutoModelForCausalLM.from_pretrained(
     attn_implementation=attn_implementation,
 )
 
-dataset = load_dataset(dataset_name, split="train").shuffle(seed=65).select(range(100))
+dataset = load_dataset(dataset_name, split="train").shuffle(seed=65).select(range(20000))
 
-instruction = """You are a top-rated customer service agent named John. 
-    Be polite to customers and answer all their questions.
+instruction = """You are a chatbot who is trained for Nepalese language. 
 """
 
 def format_chat_template(row):
@@ -99,7 +98,7 @@ trainer = SFTTrainer(
 trainer.train()
 
 messages = [{"role": "system", "content": instruction},
-    {"role": "user", "content": "I bought the same item twice, cancel order {{Order Number}}"}]
+    {"role": "user", "content": "Can you explain what are the things you can do?"}]
 
 prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 inputs = tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
