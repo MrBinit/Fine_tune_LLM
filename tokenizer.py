@@ -8,9 +8,20 @@ os.makedirs(save_dir, exist_ok = True)
 
 tokenizer = ByteLevelBPETokenizer()
 tokenizer.pre_tokenizer = Whitespace()
-tokenizer.train(files=["/home/binit/fine_tune_LLama/nepali_text_utf8.txt"], vocab_size=32000, min_frequency=2, special_tokens=[
-    "<|begin_of_text|>", "<|end_of_text|>", "<|pad|>", "<|unk|>", "<|mask|>"
-])
+
+special_tokens = [
+        "<|begin_of_text|>",
+        "<|end_of_text|>",
+        "<|reserved_special_token_0|>",
+        "<|reserved_special_token_1|>",
+        "<|reserved_special_token_2|>",
+        "<|reserved_special_token_3|>",
+        "<|start_header_id|>",
+        "<|end_header_id|>",
+        "<|reserved_special_token_4|>",
+        "<|eot_id|>", 
+]
+tokenizer.train(files=["/home/binit/fine_tune_LLama/nepali_text_utf8.txt"], vocab_size=32000, min_frequency=2, special_tokens=special_tokens)
 
 # Save model
 tokenizer.save_model(save_dir)
