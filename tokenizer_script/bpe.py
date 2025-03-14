@@ -1,19 +1,16 @@
 import logging
 from tokenizers import Tokenizer, models, pre_tokenizers, trainers, processors
-from typing import List, Dict, Union, Literal
+from typing import List, Dict
 
-
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
 
 class BPETokenizer:
     """
     BPE tokenizer, encode and decode using pre-trained model
     """
 
-    def __init__(self, bpe_model_path: str= None, special_tokens: Dict[str, str] = None):
+    def __init__(self, bpe_model_path: str = None, special_tokens: Dict[str, str] = None):
         """
         Initializes the Tokenizer with a BPE model, either pre-trained or custom.
         
@@ -23,11 +20,10 @@ class BPETokenizer:
         """
         if bpe_model_path:
             # load pre-trained model
-
             self.tokenizer = Tokenizer.from_file(bpe_model_path)
             logging.info(f"Loaded pre-trained BPE model from {bpe_model_path}")
-
         else:
+            # Initialize a new BPE tokenizer
             self.tokenizer = Tokenizer(models.BPE())
             self.tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
             logger.info("Initialized new BPE tokenizer")
@@ -35,20 +31,23 @@ class BPETokenizer:
         if special_tokens:
             self.add_special_tokens(special_tokens)
 
+        # Ensure padding token is set correctly (Llama 3.2 uses EOS token for padding)
+        if self.tokenizer.add_tokens is None:
+            self.tokenizer.add_tokens = self.tokenizer.eos_token
+            logger.info("Padding token set to EOS token.")
+
     def add_special_tokens(self, special_tokens: Dict[str, str]):
         """
-        Special tokens to the tokenizer.
+        Adds special tokens to the tokenizer.
         
         Args:
             special_tokens (dict): A dictionary of special tokens and their IDs.
         """
+        special_token_list = list(special_tokens.keys())
+        self.tokenizer.add_special_tokens(special_token_list)
+        logger.info(f"Special tokens added: {special_token_list}")
 
-        for token , id in special_tokens.items():
-            self.tokenizer.add_special_tokens([token])
-        
-        logger.info(f"Special tokens added: {list(special_tokens.keys())}")
-
-    def train(self,corpus: List[str],  vocab_size: int): 
+    def train(self, corpus: List[str], vocab_size: int): 
         """
         Train a new BPE tokenizer on a corpus.
         
@@ -56,22 +55,22 @@ class BPETokenizer:
             corpus (List[str]): List of sentences for training the tokenizer.
             vocab_size (int): The size of the vocabulary to be learned.
         """
-
-        trainer = trainers.BpeTrainer(vocab_size = vocab_size, min_frequency = 2, show_progress= True)
+        trainer = trainers.BpeTrainer(vocab_size=vocab_size, min_frequency=2, show_progress=True)
         self.tokenizer.train_from_iterator(corpus, trainer)
         logger.info(f"Trained BPE tokenizer with vocab size: {vocab_size}")
 
-    def save(self, model_path: str, vocab_path: str):
+    def save(self, model_path: str, vocab_path: str, special_tokens: Dict[str, str]):
         """
         Save the tokenizer model and vocab to files, including special tokens.
         
         Args:
             model_path (str): Path to save the BPE model file.
             vocab_path (str): Path to save the vocab file.
+            special_tokens (dict): The dictionary of special tokens to include.
         """
-        # Save special tokens
+        # Add special tokens before saving
         self.tokenizer.add_special_tokens(list(special_tokens.keys())) 
-        self.tokenizer.save(model_path)
+        self.tokenizer.save(model_path)  # Save model file
 
         # Save vocab file
         with open(vocab_path, 'w', encoding='utf-8') as vocab_file:
@@ -80,7 +79,6 @@ class BPETokenizer:
                 vocab_file.write(f"{token} {id}\n")
 
         logger.info(f"Tokenizer model and vocab saved to {model_path} and {vocab_path}")
-
 
     def load(self, model_path: str):
         """
@@ -107,17 +105,27 @@ class BPETokenizer:
         return encoded.ids
 
     def decode(self, token_ids: List[int]) -> str:
+        """
+        Decode a list of token IDs back into a string.
+        
+        Args:
+            token_ids (List[int]): The list of token IDs to decode.
+        
+        Returns:
+            str: The decoded string.
+        """
         decoded = self.tokenizer.decode(token_ids)
         logger.debug(f"Decoded token IDs {token_ids} back to text: '{decoded}'")
         return decoded
 
 
 if __name__ == '__main__':
+    # Llama 3.2 special tokens: Update based on your needs
     special_tokens = {
         "<|begin_of_text|>": 0,
         "<|end_of_text|>": 1,
-        "<|pad|>": 2,
-        "<|unk|>": 3
+        "<|image|>": 2,  # if using image inputs
+        "<|pad|>": 3     # Optional, depends on tokenizer configuration
     }
 
     corpus = [
@@ -129,15 +137,12 @@ if __name__ == '__main__':
 
     bpe_tokenizer = BPETokenizer(special_tokens=special_tokens)
     bpe_tokenizer.train(corpus, vocab_size=5000)
-    bpe_tokenizer.save("bpe_tokenizer.model", "bpe_vocab.vocab")
-
+    bpe_tokenizer.save("bpe_tokenizer.model", "bpe_vocab.vocab", special_tokens)
 
     text = "नेपाल एक सुन्दर देश हो।"
     encoded_text = bpe_tokenizer.encode(text)
     decoded_text = bpe_tokenizer.decode(encoded_text)
 
-
     logger.info(f"Original Text: {text}")
     logger.info(f"Encoded Text: {encoded_text}")
     logger.info(f"Decoded Text: {decoded_text}")
-

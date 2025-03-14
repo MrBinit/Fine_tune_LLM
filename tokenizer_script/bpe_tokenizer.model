@@ -23,7 +23,7 @@
     },
     {
       "id": 2,
-      "content": "<|pad|>",
+      "content": "<|image|>",
       "single_word": false,
       "lstrip": false,
       "rstrip": false,
@@ -32,7 +32,7 @@
     },
     {
       "id": 3,
-      "content": "<|unk|>",
+      "content": "<|pad|>",
       "single_word": false,
       "lstrip": false,
       "rstrip": false,
