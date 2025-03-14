@@ -63,20 +63,34 @@ class BPETokenizer:
 
     def save(self, model_path: str, vocab_path: str):
         """
-        Save the tokenizer model and vocab to files.
+        Save the tokenizer model and vocab to files, including special tokens.
         
         Args:
             model_path (str): Path to save the BPE model file.
             vocab_path (str): Path to save the vocab file.
         """
+        # Save special tokens
+        self.tokenizer.add_special_tokens(list(special_tokens.keys())) 
         self.tokenizer.save(model_path)
 
-        with open(vocab_path, 'w', encoding = 'utf-8') as vocab_file:
+        # Save vocab file
+        with open(vocab_path, 'w', encoding='utf-8') as vocab_file:
             vocab = self.tokenizer.get_vocab()
-
-            for token , id in vocab.items():
+            for token, id in vocab.items():
                 vocab_file.write(f"{token} {id}\n")
-            logger.info(f"Vocabulary saved to {vocab_path}")
+
+        logger.info(f"Tokenizer model and vocab saved to {model_path} and {vocab_path}")
+
+
+    def load(self, model_path: str):
+        """
+        Load a pre-trained BPE tokenizer model.
+        
+        Args:
+            model_path (str): Path to the pre-trained BPE model file.
+        """
+        self.tokenizer = Tokenizer.from_file(model_path)
+        logger.info(f"Loaded pre-trained BPE model from {model_path}")
 
     def encode(self, text: str) -> List[int]:
         """

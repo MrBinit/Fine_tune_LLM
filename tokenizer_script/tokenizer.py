@@ -1,4 +1,3 @@
-13.8 kB
 import os
 from logging import getLogger
 from pathlib import Path
@@ -19,8 +18,6 @@ import tiktoken
 from tiktoken.load import load_tiktoken_bpe
 from unittest import TestCase
 
-
-#setup logging
 logger = getLogger(__name__)
 Role = Literal["system", "user", "assistant"]
 
@@ -39,7 +36,7 @@ class Tokenizer:
     """
     special_tokens: Dict[str, int]
     num_reserved_special_tokens = 256
-    pat_str = r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+|[।]"
+    pat_str = r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"  # noqa: E501
 
     def __init__(self, model_path: str):
         """
@@ -91,7 +88,6 @@ class Tokenizer:
             f"#words: {self.n_words} - BOS ID: {self.bos_id} - EOS ID: {self.eos_id}"
         )
 
-
     def encode(
             self,
             s: str,
@@ -124,13 +120,7 @@ class Tokenizer:
         """
         assert type(s) is str
 
-        # The tiktoken tokenizer can handle <=400k chars without
-        # pyo3_runtime.PanicException.
         TIKTOKEN_MAX_ENCODE_CHARS = 400_000
-
-        # https://github.com/openai/tiktoken/issues/195
-        # Here we iterate over subsequences and split if we exceed the limit
-        # of max consecutive non-whitespace or whitespace characters.
         MAX_NO_WHITESPACES_CHARS = 25_000
 
         substrs = (
@@ -223,9 +213,9 @@ class ChatFormat:
         # Add the start of an assistant message for the model to complete.
         tokens.extend(self.encode_header({"role": "assistant", "content": ""}))
         return tokens
-        
+
 if __name__ == '__main__':
-    tokenizer = Tokenizer("D:/LLAMA3/Meta-Llama-3-8B/original/tokenizer.model")
+    tokenizer = Tokenizer("/home/binit/fine_tune_LLama/tokenizer_script/bpe_tokenizer.model")
     chat_format = ChatFormat(tokenizer)
 
     chat = [
@@ -233,44 +223,31 @@ if __name__ == '__main__':
         {"role": "assistant", "content": "I'm doing great. How can I help you today?"},
         {"role": "user", "content": "I'd like to show off how chat templating works!"},
     ]
-    message_1 = {"role": "user", "content": "ཀ་གཏུགས་པ"}
-    # print("chat_format_encode:", chat_format.encode_message(chat[0]))
+    message_1 = {"role": "user", "content": "सन्दर्भ"}
+    # print("chat_format_encode:", chat_format.encod_message(chat[0]))
 
     # print("chat_encode:", tokenizer.encode("Hello, how are you?", bos=True, eos=True))
     # print("decode:", tokenizer.decode([128000, 9906, 11, 1268, 527, 499, 30, 128001]))
-    chinese_word = "我是你爹！"
-    encoded_word = tokenizer.encode(chinese_word, bos=True, eos=True)
-    print("tibetan_word_encode:", chinese_word)
-    print("tibetan_word_decode:", tokenizer.decode(encoded_word))
+    nepali_word = "मेरो देश！"
+    encoded_word = tokenizer.encode(nepali_word, bos=True, eos=True)
+    print("Nepali_word_encode:", nepali_word)
+    print("Nepali_word_decode:", tokenizer.decode(encoded_word))
 
-    chinese_word_format = {"role": "user", "content": "我是你爹！"}
-    encoded_word = chat_format.encode_message(chinese_word_format)
-    print("tibetan_word_format_encode:", chinese_word_format)
-    print("tibetan_word_format_decode:", tokenizer.decode(encoded_word))
+    nepali_word_format = {"role": "user", "content": "मेरो जीवन!"}
+    encoded_word = chat_format.encode_message(nepali_word_format)
+    print("Nepali_word_format_encode:", nepali_word_format)
+    print("Nepali_word_format_decode:", tokenizer.decode(encoded_word))
 
-    chinese_dialog = [
+    nepali_dialog = [
             {
                 "role": "system",
-                "content": "你是一个足球专家",
+                "content": "तपाईंको आफ्नै भाइबहिनी",
             },
             {
                 "role": "user",
                 "content": "您觉得该如何评价中国足球？",
             }
         ]
-    encoded_word = chat_format.encode_dialog_prompt(chinese_dialog)
-    print("tibetan_word_format_encode:", chinese_word_format)
-    print("tibetan_word_format_decode:", tokenizer.decode(encoded_word))
-    #   "Hello": 9906,
-    #   ",": 11,
-    #   "Ġhow": 1268,
-    #   "Ġare": 527,
-    #   "Ġyou": 499,
-    #   "?": 30,
-
-    tibetan_word = "ཀ་གཏུགས་པ"
-    encoded_word = tokenizer.encode(tibetan_word, bos=True, eos=True)
-    print("tibetan_word:", tibetan_word)
-    print("tibetan_encoded_word:", encoded_word)
-    print("tibetan_word_decode:", tokenizer.decode(encoded_word))
-    print("tibetan_word_decode[1:-1]:", tokenizer.decode(encoded_word[1:-1]))
+    encoded_word = chat_format.encode_dialog_prompt(nepali_dialog)
+    print("Nepali_word_format_encode:", nepali_word_format)
+    print("Nepali_word_format_decode:", tokenizer.decode(encoded_word))
