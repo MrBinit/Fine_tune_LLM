@@ -2,6 +2,7 @@ import sentencepiece as spm
 from transformers import LlamaTokenizer
 from typing import List, Sequence
 import logging 
+import os
 
 class sentence_piece_tokenizer:
     def __init__(self, input_file, model_prefix, vocab_size):
@@ -42,9 +43,15 @@ class sentence_piece_tokenizer:
 
 
         self.sp_model = spm.SentencePieceProcessor()
-        self.sp_model.load(f"{self.model_prefix}.model")  # Load the trained model
+        # self.sp_model.load(f"{self.model_prefix}.model")  # Load the trained model
 
-
+    def load_model(self):
+        model_file = f"{self.model_prefix}.model"
+        if os.path.exists(model_file):
+            self.sp_model.load(model_file)
+            print(f"Loaded model from {model_file}")
+        else:
+            raise FileNotFoundError(f"{model_file} not found. Run train() first.")
 
     def train(self):
         """
@@ -54,6 +61,7 @@ class sentence_piece_tokenizer:
             f"--input={self.input_file} --model_prefix={self.model_prefix} --vocab_size={self.vocab_size} --character_coverage=1.0 --model_type=bpe"
         )
         print(f"Model training completed! Model and vocab saved as {self.model_prefix}.model")
+        self.load_model()
 
     def create_llama_tokenizer(self, vocab_file):
         """
@@ -135,7 +143,10 @@ if __name__ == '__main__':
     vocab_file = "/home/binit/fine_tune_LLama/tokenizer_script/spm_model.model"
 
     sp_tokenizer = sentence_piece_tokenizer(input_file, model_prefix, vocab_size)
-    sp_tokenizer.train()
+    if not os.path.exists(f"{model_prefix}.model"):
+        sp_tokenizer.train()
+    else:
+        sp_tokenizer.load_model()
     sp_tokenizer.create_llama_tokenizer(vocab_file)
 
     chat_format = ChatFormat(sp_tokenizer)
