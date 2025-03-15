@@ -75,7 +75,7 @@ class CSVToTextConverter:
 
 
 output_csv_path = '/home/binit/fine_tune_LLama/csv_column_info.csv'
-txt_file_path = '/home/binit/fine_tune_LLama/extracted_text.txt'
+txt_file_path = '/home/binit/fine_tune_LLama/extracted_text_1.txt'
 columns_to_select = ['question', 'answer', 'review', 'Article', 'Translated_Response', 'Translated_Context', 
                      'Sentences', 'correct', 'incorrect', 'article', 'ne', 'text', 'input', 'output', 
                      'Nepali Text', 'article_summary', 'Question', 'Answer', 'target']
