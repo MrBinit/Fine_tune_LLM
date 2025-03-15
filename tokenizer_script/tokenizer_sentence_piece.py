@@ -33,7 +33,7 @@ class sentence_piece_tokenizer:
         ]
 
         self.special_tokens = {
-            token : 10000 + i for i, token in enumerate(special_tokens)
+            token : 100 + i for i, token in enumerate(special_tokens)   # after the text is increase I need increase the size
         }
 
         self.num_reserved_special_tokens = 256
@@ -128,7 +128,7 @@ class ChatFormat:
         return tokens
 
 if __name__ == '__main__':
-    input_file = '/home/binit/fine_tune_LLama/nepali_text.txt'
+    input_file = '/home/binit/fine_tune_LLama/extracted_text.txt'
     model_prefix = 'spm_model'
     vocab_size = 655
     vocab_file = "/home/binit/fine_tune_LLama/tokenizer_script/spm_model.model"
@@ -149,4 +149,4 @@ if __name__ == '__main__':
     print("chat_format_encode:", chat_format.encode_message(chat[0]))
     tokens = sp_tokenizer.encode("Hello, how are you?", bos=True, eos=True)
     print("chat_encode:", tokens)
-    # print("decode:", sp_tokenizer.decode(tokens))
+    print("decode:", sp_tokenizer.decode(tokens))
