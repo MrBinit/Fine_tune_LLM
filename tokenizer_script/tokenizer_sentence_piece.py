@@ -1,6 +1,7 @@
 import sentencepiece as spm
 from transformers import LlamaTokenizer
 from typing import List, Sequence
+import logging 
 
 class sentence_piece_tokenizer:
     def __init__(self, input_file, model_prefix, vocab_size):
@@ -128,7 +129,7 @@ class ChatFormat:
         return tokens
 
 if __name__ == '__main__':
-    input_file = '/home/binit/fine_tune_LLama/extracted_text.txt'
+    input_file = '/home/binit/fine_tune_LLama/nepali_text.txt'
     model_prefix = 'spm_model'
     vocab_size = 655
     vocab_file = "/home/binit/fine_tune_LLama/tokenizer_script/spm_model.model"
@@ -145,8 +146,42 @@ if __name__ == '__main__':
         {"role": "user", "content": "I'd like to show off how chat templating works!"},
     ]
 
-    message_1 = {"role": "user", "content": "अनुरोध"}
+    message_1 = {"role": "user", "content": "नमस्ते, तपाईलाई कस्तो छ?"}
     print("chat_format_encode:", chat_format.encode_message(chat[0]))
     tokens = sp_tokenizer.encode("Hello, how are you?", bos=True, eos=True)
     print("chat_encode:", tokens)
     print("decode:", sp_tokenizer.decode(tokens))
+
+
+    nepali_word = "तपाईलाई कस्तो छ?"
+    encoded_word = sp_tokenizer.encode(nepali_word, bos=True, eos=True)
+    print("nepali_word_encode:", nepali_word)
+    print("nepali_word_decode:", sp_tokenizer.decode(encoded_word))
+
+    nepali_word_format = {"role": "user", "content": "तपाईलाई कस्तो छ?"}
+    encoded_word = chat_format.encode_message(nepali_word_format)
+    print("nepali_word_format_encode:", nepali_word_format)
+    print("nepali_word_format_decode:", sp_tokenizer.decode(encoded_word))
+
+
+    nepali_dialog = [
+    {
+        "role": "system",
+        "content": "तपाई एक फुटबल विशेषज्ञ हुनुहुन्छ।",
+    },
+    {
+        "role": "user",
+        "content": "तपाईलाई के लाग्छ, नेपाली फुटबल कस्तो छ?",
+    }
+    ]
+
+    encoded_word = chat_format.encode_dialog_prompt(nepali_dialog)
+    print("nepali_dialog_format_encode:", nepali_dialog)
+    print("nepali_dialog_format_decode:", sp_tokenizer.decode(encoded_word))
+
+    # Tokenizing Nepali word
+    encoded_word = sp_tokenizer.encode(nepali_word, bos=True, eos=True)
+    print("nepali_word:", nepali_word)
+    print("nepali_encoded_word:", encoded_word)
+    print("nepali_word_decode:", sp_tokenizer.decode(encoded_word))
+    print("nepali_word_decode[1:-1]:", sp_tokenizer.decode(encoded_word[1:-1]))
