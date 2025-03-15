@@ -58,7 +58,7 @@ class sentence_piece_tokenizer:
         Train the SentencePiece model using the provided input file, model prefix, and vocab size.
         """
         spm.SentencePieceTrainer.train(
-            f"--input={self.input_file} --model_prefix={self.model_prefix} --vocab_size={self.vocab_size} --character_coverage=1.0 --model_type=bpe"
+            f"--input={self.input_file} --model_prefix={self.model_prefix} --vocab_size={self.vocab_size} --character_coverage=1.0 --model_type=bpe  --shuffle_input_sentence=true --input_sentence_size=1000000"
         )
         print(f"Model training completed! Model and vocab saved as {self.model_prefix}.model")
         self.load_model()
