@@ -89,5 +89,5 @@ class Tokenizer:
         )
 
 if __name__ == '__main__':
-    tokenizer = Tokenizer("/home/binit/fine_tune_LLama/tokenizer_script/bpe_tokenizer.model")
+    tokenizer = Tokenizer("/home/binit/fine_tune_LLama/tokenizer_script/custom_nepali_tokenizer/tokenizer.model")
 
