@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-model_path = "/home/binit/fine_tune_LLama/llama-3.2-3b-it-Ecommerce-ChatBot"
+model_path = "/home/binit/fine_tune_LLama/fine_tune/Nepali_Llama"
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
     model_path,

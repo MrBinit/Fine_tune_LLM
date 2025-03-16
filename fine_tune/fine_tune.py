@@ -160,8 +160,18 @@ class Llama_trainer:
         # Save the trained model and tokenizer
         trainer.model.save_pretrained(self.new_model)
         self.tokenizer.save_pretrained(self.new_model)
-        
+
         logger.info(f"Model and tokenizer saved to {self.new_model}.")
+
+
+    def merge_model(self):
+        if hasattr(self.model, "merge_and_unload"):
+            self.model = self.model.merge_and_unload()
+            logger.info("LoRA weights merged into the base model.")
+        else:
+            logger.warning("Model does not support merge_and_unload; skipping merge.")
+
+
 
     def generate_response(self, user_message):
         """
@@ -195,6 +205,7 @@ if __name__ == '__main__':
     text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
 
+    final_model_path = "Llama-3.2_3B_Nepali_language"
     # Create an instance of ChatbotTrainer
     trainer = Llama_trainer(base_model=base_model_path,
                                  txt_file=text_file_path,
@@ -207,10 +218,17 @@ if __name__ == '__main__':
     # Train the model
     trainer.train()
 
+    trainer.merge_model()
+
+
     # Generate a sample response from the fine-tuned model
     sample_user_message = "नेपालको इतिहासको बारेमा बताउन सक्नुहुन्छ?"
     response = trainer.generate_response(sample_user_message)
     logger.info("Generated response:")
     logger.info(response)
 
+
+    trainer.model.save_pretrained(final_model_path)
+    trainer.tokenizer.save_pretrained(final_model_path)
+    logger.info(f"Final merged model and tokenizer saved to {final_model_path}.")
 
