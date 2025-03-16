@@ -43,7 +43,6 @@ class sentence_piece_tokenizer:
 
 
         self.sp_model = spm.SentencePieceProcessor()
-        # self.sp_model.load(f"{self.model_prefix}.model")  # Load the trained model
 
     def load_model(self):
         model_file = f"{self.model_prefix}.model"
@@ -137,9 +136,9 @@ class ChatFormat:
         return tokens
 
 if __name__ == '__main__':
-    input_file = '/home/binit/fine_tune_LLama/nepali_text.txt'
+    input_file = '/home/binit/fine_tune_LLama/extracted_text.txt'
     model_prefix = 'spm_model'
-    vocab_size = 655
+    vocab_size = 1200
     vocab_file = "/home/binit/fine_tune_LLama/tokenizer_script/spm_model.model"
 
     sp_tokenizer = sentence_piece_tokenizer(input_file, model_prefix, vocab_size)

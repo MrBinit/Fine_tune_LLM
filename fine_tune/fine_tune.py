@@ -6,11 +6,12 @@ from datasets import load_dataset
 from trl import SFTTrainer, setup_chat_format
 
 base_model = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-# tokenizer = AutoTokenizer.from_pretrained(base_model)
+tokenizer = AutoTokenizer.from_pretrained(base_model)
 
-tokenizer = AutoTokenizer.from_pretrained("/home/binit/fine_tune_LLama/tokenizer_script/custom_nepali_tokenizer")
+# tokenizer = AutoTokenizer.from_pretrained("/home/binit/fine_tune_LLama/tokenizer_script/custom_nepali_tokenizer")
 new_model = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
-dataset_name = "bitext/Bitext-customer-support-llm-chatbot-training-dataset"
+# dataset_name = "bitext/Bitext-customer-support-llm-chatbot-training-dataset"
+txt_file = "/home/binit/fine_tune_LLama/nepali_text.txt"  
 
 torch_dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 0 else torch.float16
 attn_implementation = "flash_attention_2" if torch_dtype == torch.bfloat16 else "eager"
@@ -30,16 +31,21 @@ model = AutoModelForCausalLM.from_pretrained(
     attn_implementation=attn_implementation,
 )
 
-dataset = load_dataset(dataset_name, split="train").shuffle(seed=65).select(range(20000))
+# dataset = load_dataset(dataset_name, split="train").shuffle(seed=65).select(range(20000))
+dataset = load_dataset("text", data_files = txt_file, split="train").shuffle(seed=65)
 
 instruction = """You are a chatbot who is trained for Nepalese language. 
 """
 
+def formated_text(row):
+    row['formatted_text'] = instruction + row['text']
+    return row
+
 def format_chat_template(row):
     row_json = [
         {"role": "system", "content": instruction},
-        {"role": "user", "content": row["instruction"]},
-        {"role": "assistant", "content": row["response"]},
+        # {"role": "user", "content": row["instruction"]},
+        {"role": "assistant", "content": row["text"]},
     ]
     row["text"] = tokenizer.apply_chat_template(row_json, tokenize=False)
     return row
