@@ -4,115 +4,213 @@ import bitsandbytes as bnb
 import torch
 from datasets import load_dataset
 from trl import SFTTrainer, setup_chat_format
+import logging
 
-base_model = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-tokenizer = AutoTokenizer.from_pretrained(base_model)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# tokenizer = AutoTokenizer.from_pretrained("/home/binit/fine_tune_LLama/tokenizer_script/custom_nepali_tokenizer")
-new_model = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
-# dataset_name = "bitext/Bitext-customer-support-llm-chatbot-training-dataset"
-txt_file = "/home/binit/fine_tune_LLama/nepali_text.txt"  
 
-torch_dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 0 else torch.float16
-attn_implementation = "flash_attention_2" if torch_dtype == torch.bfloat16 else "eager"
+class Llama_trainer:
+    def __init__(self, base_model, txt_file, new_model):
+        """
+        Initialize the trainer with model paths and configuration.
 
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch_dtype,
-    bnb_4bit_use_double_quant=True,
-)
+        Args:
+            base_model (str): Path to the pre-trained base model.
+            txt_file (str): Path to the plain text file with training data.
+            new_model (str): Directory to save the fine-tuned model.
+            num_examples (int): Maximum number of examples to use from the dataset.
+            seed (int): Seed for shuffling the dataset.
+        """
 
-model = AutoModelForCausalLM.from_pretrained(
-    base_model,
-    quantization_config=bnb_config,
-    device_map="auto",
-    torch_dtype=torch_dtype,
-    attn_implementation=attn_implementation,
-)
+        self.base_model = base_model
+        self.txt_file = txt_file
+        self.new_model = new_model
+        self.seed = 65 
+        self.instruction = "You are a chatbot who is trained for Nepalese language.\n"
+        self.tokenizer= AutoTokenizer.from_pretrained(self.base_model)
+        logger.info("Loaded tokenizer from base model.")
+        self.model = None
+        self.train_dataset = None
+        self.test_dataset = None
 
-# dataset = load_dataset(dataset_name, split="train").shuffle(seed=65).select(range(20000))
-dataset = load_dataset("text", data_files = txt_file, split="train").shuffle(seed=65)
+    def setup_model(self):
+        """
+        Set up the model using BitsAndBytes for 4-bit quantization.
+        """
 
-instruction = """You are a chatbot who is trained for Nepalese language. 
-"""
+        torch_dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 0 else torch.float16
+        attn_implementation = "flash_attention_2" if torch_dtype == torch.bfloat16 else "eager"
 
-def formated_text(row):
-    row['formatted_text'] = instruction + row['text']
-    return row
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch_dtype,
+            bnb_4bit_use_double_quant=True,
+        )
 
-def format_chat_template(row):
-    row_json = [
-        {"role": "system", "content": instruction},
-        # {"role": "user", "content": row["instruction"]},
-        {"role": "assistant", "content": row["text"]},
-    ]
-    row["text"] = tokenizer.apply_chat_template(row_json, tokenize=False)
-    return row
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.base_model,
+            quantization_config=bnb_config,
+            device_map="auto",
+            torch_dtype=torch_dtype,
+            attn_implementation=attn_implementation,
+        )
+        logger.info("Loaded base model with 4-bit quantization.")
 
-dataset = dataset.map(format_chat_template, num_proc=4)
+    def prepare_dataset(self):
+        """
+        Load, shuffle, and format the dataset from a plain text file.
+        """
 
-train_size = int(0.8 * len(dataset))
-train_dataset = dataset.select(range(train_size))
-test_dataset = dataset.select(range(train_size, len(dataset)))
+        dataset = load_dataset("text", data_files = self.txt_file, split="train").shuffle(seed=65)
+        dataset = dataset.map(self.format_chat_template, num_proc=1)
+        logger.info("Applied chat formatting to the dataset.")
+        train_size = int(0.8 * len(dataset))
+        self.train_dataset = dataset.select(range(train_size))
+        self.test_dataset = dataset.select(range(train_size, len(dataset)))
+        logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
 
-modules = ['k_proj', 'gate_proj', 'v_proj', 'up_proj', 'q_proj', 'o_proj', 'down_proj', 'lm_head']
+    def format_chat_template(self, row):
+        """
+        Format each row by applying a chat template.
 
-peft_config = LoraConfig(
-    r=16,
-    lora_alpha=32,
-    lora_dropout=0.5,
-    bias="none",
-    task_type="CAUSAL_LM",
-    target_modules=modules,
-)
+        This function creates a prompt by combining a system instruction and the original text
+        as a user message, then uses the tokenizer's chat template functionality.
 
-if hasattr(tokenizer, "chat_template") and tokenizer.chat_template is not None:
-    tokenizer.chat_template = None
+        Args:
+            row (dict): A dictionary with a 'text' field.
 
-model, tokenizer = setup_chat_format(model, tokenizer)
-model = get_peft_model(model, peft_config)
+        Returns:
+            dict: The updated row with formatted 'text'.
+        """
+        row_json = [
+            {"role": "system", "content": self.instruction},
+            {"role": "assistant", "content": row["text"]},
+        ]
+        row["text"] = self.tokenizer.apply_chat_template(row_json, tokenize=False)
+        return row
 
-training_arguments = TrainingArguments(
-    output_dir=new_model,
-    per_device_train_batch_size=1,
-    per_device_eval_batch_size=1,
-    gradient_accumulation_steps=2,
-    optim="paged_adamw_32bit",
-    num_train_epochs=1,
-    evaluation_strategy="steps",
-    eval_steps=0.2,
-    logging_steps=1,
-    warmup_steps=10,
-    logging_strategy="steps",
-    learning_rate=2e-4,
-    fp16=False,
-    bf16=False,
-    group_by_length=True,
-    logging_dir="./logs",
-    lr_scheduler_type="cosine",
-    max_steps=200,
-)
+    def setup_peft(self):
+        modules = ['k_proj', 'gate_proj', 'v_proj', 'up_proj', 'q_proj', 'o_proj', 'down_proj', 'lm_head']
+        self.peft_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            lora_dropout=0.5,
+            bias="none",
+            task_type="CAUSAL_LM",
+            target_modules=modules,
+        )
+        logger.info("PEFT configuration set up with LoRA.")
 
-trainer = SFTTrainer(
-    model=model,
-    train_dataset=train_dataset,
-    eval_dataset=test_dataset,
-    peft_config=peft_config,
-    tokenizer=tokenizer,
-    args=training_arguments,
-)
+        if hasattr(self.tokenizer, "chat_template") and self.tokenizer.chat_template is not None:
+            self.tokenizer.chat_template = None
 
-trainer.train()
+        # Set up the chat format for the model and tokenizer
+        self.model, self.tokenizer = setup_chat_format(self.model, self.tokenizer)
+        logger.info("Chat format set up for model and tokenizer.")
 
-messages = [{"role": "system", "content": instruction},
-    {"role": "user", "content": "Can you explain what are the things you can do?"}]
+        # Wrap the model using PEFT with the LoRA configuration
+        self.model = get_peft_model(self.model, self.peft_config)
+        logger.info("PEFT model created using LoRA.")
+    
+    def setup_training_arguments(self):
+        """
+        Define training arguments for the fine-tuning process.
+        """
+        self.training_arguments = TrainingArguments(
+            output_dir=self.new_model,
+            per_device_train_batch_size=1,
+            per_device_eval_batch_size=1,
+            gradient_accumulation_steps=2,
+            optim="paged_adamw_32bit",
+            num_train_epochs=1,
+            evaluation_strategy="steps",
+            eval_steps=0.2,
+            logging_steps=1,
+            warmup_steps=10,
+            logging_strategy="steps",
+            learning_rate=2e-4,
+            fp16=False,
+            bf16=False,
+            group_by_length=True,
+            logging_dir="./logs",
+            lr_scheduler_type="cosine",
+            max_steps=200,
+        )
+        logger.info("Training arguments configured.")
 
-prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-inputs = tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
-outputs = model.generate(**inputs, max_new_tokens=150, num_return_sequences=1)
-text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-print(text.split("assistant")[1])
+    def train(self):
+        """
+        Train the model using the SFTTrainer.
+        """
+        # Initialize the trainer with the model, datasets, and training arguments
+        trainer = SFTTrainer(
+            model=self.model,
+            train_dataset=self.train_dataset,
+            eval_dataset=self.test_dataset,
+            peft_config=self.peft_config,
+            tokenizer=self.tokenizer,
+            args=self.training_arguments,
+        )
+        logger.info("Starting training...")
+        trainer.train()
+        logger.info("Training complete.")
 
-trainer.model.save_pretrained(new_model)
-tokenizer.save_pretrained(new_model)
+        # Save the trained model and tokenizer
+        trainer.model.save_pretrained(self.new_model)
+        self.tokenizer.save_pretrained(self.new_model)
+        
+        logger.info(f"Model and tokenizer saved to {self.new_model}.")
+
+    def generate_response(self, user_message):
+        """
+        Generate a response from the model given a user message.
+
+        Args:
+            user_message (str): The message from the user.
+
+        Returns:
+            str: The generated response from the model.
+        """
+        # Create a chat prompt with system instruction and user message
+        messages = [
+            {"role": "system", "content": self.instruction},
+            {"role": "user", "content": user_message}
+        ]
+        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
+        outputs = self.model.generate(**inputs, max_new_tokens=150, num_return_sequences=1)
+        decoded_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Extract and return the assistant's response (split based on your prompt format)
+        response = decoded_text.split("assistant")[-1].strip()
+        return response
+
+
+
+
+
+if __name__ == '__main__':
+    base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
+    text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
+    new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
+
+    # Create an instance of ChatbotTrainer
+    trainer = Llama_trainer(base_model=base_model_path,
+                                 txt_file=text_file_path,
+                                 new_model=new_model_path)
+    trainer.setup_model()
+    trainer.prepare_dataset()
+    trainer.setup_peft()
+    trainer.setup_training_arguments()
+
+    # Train the model
+    trainer.train()
+
+    # Generate a sample response from the fine-tuned model
+    sample_user_message = "नेपालको इतिहासको बारेमा बताउन सक्नुहुन्छ?"
+    response = trainer.generate_response(sample_user_message)
+    logger.info("Generated response:")
+    logger.info(response)
+
+
