@@ -1,8 +1,12 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-model_path = "/home/binit/fine_tune_LLama/fine_tune/Nepali_Llama"
+model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
+
+# Load the tokenizer and set the padding token to the eos_token.
 tokenizer = AutoTokenizer.from_pretrained(model_path)
+tokenizer.pad_token = tokenizer.eos_token
+
 model = AutoModelForCausalLM.from_pretrained(
     model_path,
     torch_dtype=torch.float16,
@@ -26,4 +30,3 @@ def generate_response(user_input):
 user_query = "राणा शासनले नेपाल कसरी कब्जा गर्यो भनेर व्याख्या गर्न सक्नुहुन्छ?"
 response = generate_response(user_query)
 print("Chatbot:", response)
-

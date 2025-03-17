@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Llama_trainer:
-    def __init__(self, base_model, txt_file, new_model):
+    def __init__(self, base_model, txt_file, new_model, tokenizer):
         """
         Initialize the trainer with model paths and configuration.
 
@@ -28,7 +28,8 @@ class Llama_trainer:
         self.new_model = new_model
         self.seed = 65 
         self.instruction = "You are a chatbot who is trained for Nepalese language.\n"
-        self.tokenizer= AutoTokenizer.from_pretrained(self.base_model)
+
+        self.tokenizer= AutoTokenizer.from_pretrained(tokenizer)
         logger.info("Loaded tokenizer from base model.")
         self.model = None
         self.train_dataset = None
@@ -204,12 +205,13 @@ if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
     text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
-
+    tokenizer = "/home/binit/fine_tune_LLama/tokenizer_script/custom_nepali_tokenizer"
     final_model_path = "Llama-3.2_3B_Nepali_language"
     # Create an instance of ChatbotTrainer
     trainer = Llama_trainer(base_model=base_model_path,
                                  txt_file=text_file_path,
-                                 new_model=new_model_path)
+                                 new_model=new_model_path, 
+                                 tokenizer = tokenizer)
     trainer.setup_model()
     trainer.prepare_dataset()
     trainer.setup_peft()
