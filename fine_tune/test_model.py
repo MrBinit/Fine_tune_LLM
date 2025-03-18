@@ -1,8 +1,9 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
+model_path = "/home/binit/fine_tune_LLama/fine_tune/Llama-3.2_3B_Nepali_language"
 
+# model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
 # Load the tokenizer and set the padding token to the eos_token.
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 tokenizer.pad_token = tokenizer.eos_token

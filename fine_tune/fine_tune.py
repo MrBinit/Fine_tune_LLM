@@ -126,7 +126,8 @@ class Llama_trainer:
             optim="paged_adamw_32bit",
             num_train_epochs=4,
             evaluation_strategy="steps",
-            eval_steps=0.2,
+            eval_steps=1000,
+            save_steps=1000,
             logging_steps=1,
             warmup_steps=10,
             logging_strategy="steps",
@@ -137,6 +138,7 @@ class Llama_trainer:
             logging_dir="./logs",
             lr_scheduler_type="cosine",
             max_steps=200,
+            save_total_limit=3  
         )
         logger.info("Training arguments configured.")
 
