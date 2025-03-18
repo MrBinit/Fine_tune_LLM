@@ -135,7 +135,7 @@ class Llama_trainer:
             fp16=False,
             bf16=False,
             group_by_length=True,
-            logging_dir="./logs",
+            logging_dir="/home/binit/fine_tune_LLama/logs",
             lr_scheduler_type="cosine",
             max_steps=200,
             save_total_limit=3  

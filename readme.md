@@ -26,8 +26,7 @@ model = AutoModelForCausalLM.from_pretrained(
 ).to("cuda")
 
 def generate_response(user_input):
-    instruction = """You are a top-rated customer service agent named John. 
-    Be polite to customers and answer all their questions."""
+    instruction = """You are an nepali speaker fluent in nepali language. """
     
     messages = [
         {"role": "system", "content": instruction},

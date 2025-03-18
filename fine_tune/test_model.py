@@ -1,10 +1,10 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
+import streamlit as st
+
 
 model_path = "/home/binit/fine_tune_LLama/fine_tune/Llama-3.2_3B_Nepali_language"
 
-# model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-# Load the tokenizer and set the padding token to the eos_token.
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 tokenizer.pad_token = tokenizer.eos_token
 
@@ -15,8 +15,7 @@ model = AutoModelForCausalLM.from_pretrained(
 ).to("cuda")
 
 def generate_response(user_input):
-    instruction = """You are a top-rated customer service agent named John. 
-    Be polite to customers and answer all their questions."""
+    instruction = """You are an Nepali chatbot and you have fluent in Nepalese language"""
     
     messages = [
         {"role": "system", "content": instruction},
@@ -24,10 +23,20 @@ def generate_response(user_input):
     ]
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
-    outputs = model.generate(**inputs, max_new_tokens=150, num_return_sequences=1)
+    outputs = model.generate(**inputs, max_new_tokens=500, num_return_sequences=1)
     response_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return response_text.split("assistant")[1].strip()
 
 user_query = "राणा शासनले नेपाल कसरी कब्जा गर्यो भनेर व्याख्या गर्न सक्नुहुन्छ?"
 response = generate_response(user_query)
 print("Chatbot:", response)
+
+# st.title("Nepali Language Chatbot")
+# st.write("Chat with the chatbot in Nepali language.")
+
+# user_query = st.text_input("Enter your query in Nepali:")
+
+# if user_query:
+#     response = generate_response(user_query)
+#     st.write("Chatbot: ", response)
+

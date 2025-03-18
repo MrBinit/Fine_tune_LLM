@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Llama_trainer:
-    def __init__(self, base_model, txt_file, new_model, tokenizer):
+    def __init__(self, base_model, txt_file, new_model):
         """
         Initialize the trainer with model paths and configuration.
 
@@ -28,8 +28,7 @@ class Llama_trainer:
         self.new_model = new_model
         self.seed = 65 
         self.instruction = "You are a chatbot who is trained for Nepalese language.\n"
-
-        self.tokenizer= AutoTokenizer.from_pretrained(tokenizer)
+        self.tokenizer= AutoTokenizer.from_pretrained(self.base_model)
         logger.info("Loaded tokenizer from base model.")
         self.model = None
         self.train_dataset = None
@@ -127,7 +126,8 @@ class Llama_trainer:
             optim="paged_adamw_32bit",
             num_train_epochs=4,
             evaluation_strategy="steps",
-            eval_steps=0.2,
+            eval_steps=1000,
+            save_steps=1000,
             logging_steps=1,
             warmup_steps=10,
             logging_strategy="steps",
@@ -138,6 +138,7 @@ class Llama_trainer:
             logging_dir="./logs",
             lr_scheduler_type="cosine",
             max_steps=200,
+            save_total_limit=3  
         )
         logger.info("Training arguments configured.")
 
@@ -203,15 +204,14 @@ class Llama_trainer:
 
 if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-    text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
+    text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
-    tokenizer = "/home/binit/fine_tune_LLama/tokenizer_script/custom_nepali_tokenizer"
+
     final_model_path = "Llama-3.2_3B_Nepali_language"
     # Create an instance of ChatbotTrainer
     trainer = Llama_trainer(base_model=base_model_path,
                                  txt_file=text_file_path,
-                                 new_model=new_model_path, 
-                                 tokenizer = tokenizer)
+                                 new_model=new_model_path)
     trainer.setup_model()
     trainer.prepare_dataset()
     trainer.setup_peft()
@@ -225,6 +225,7 @@ if __name__ == '__main__':
 
     # Generate a sample response from the fine-tuned model
     sample_user_message = "नेपालको इतिहासको बारेमा बताउन सक्नुहुन्छ?"
+    # sample_user_message = "तिमीलाई कस्तो छ"
     response = trainer.generate_response(sample_user_message)
     logger.info("Generated response:")
     logger.info(response)
