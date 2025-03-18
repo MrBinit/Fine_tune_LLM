@@ -2,9 +2,10 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, PeftModel
 import bitsandbytes as bnb
 import torch
-from datasets import load_dataset
+from datasets import load_dataset,  load_from_disk
 from trl import SFTTrainer, setup_chat_format
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,14 +63,27 @@ class Llama_trainer:
         """
         Load, shuffle, and format the dataset from a plain text file.
         """
+        train_arrow = "train_split.arrow"
+        test_arrow = "test_split.arrow"
+        if os.path.exists(train_arrow) and os.path.exists(test_arrow):
+            logger.info("Arrow files found. Loading dataset splits from disk. ")
+            self.train = load_from_disk(train_arrow)
+            self.test = load_from_disk(test_arrow)
+        else:
+            logger.info("Arrow files not found. Loading dataset and creating train/test split.")
+            dataset = load_dataset("text", data_files = self.txt_file, split="train").shuffle(seed = self.seed)
+            dataset = dataset.map(self.format_chat_template, num_proc=1, load_from_cache_file=False)
+            logger.info("Applied chat formatting to the dataset.")
+            dataset_split = dataset.train_test_split(test_size=0.2, seed= self.seed)
+            self.train_dataset = dataset_split["train"]
+            self.test_dataset = dataset_split["test"]
+            logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
 
-        dataset = load_dataset("text", data_files = self.txt_file, split="train").shuffle(seed=65)
-        dataset = dataset.map(self.format_chat_template, num_proc=1)
-        logger.info("Applied chat formatting to the dataset.")
-        train_size = int(0.8 * len(dataset))
-        self.train_dataset = dataset.select(range(train_size))
-        self.test_dataset = dataset.select(range(train_size, len(dataset)))
-        logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
+            self.train_dataset.save_to_disk(train_arrow)
+            self.test_dataset.save_to_disk(test_arrow)
+            logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
+
+
 
     def format_chat_template(self, row):
         """
@@ -120,24 +134,24 @@ class Llama_trainer:
         """
         self.training_arguments = TrainingArguments(
             output_dir=self.new_model,
-            per_device_train_batch_size=1,
-            per_device_eval_batch_size=1,
+            per_device_train_batch_size=4,
+            per_device_eval_batch_size=4,
             gradient_accumulation_steps=2,
             optim="paged_adamw_32bit",
             num_train_epochs=4,
             evaluation_strategy="steps",
             eval_steps=1000,
             save_steps=1000,
-            logging_steps=1,
-            warmup_steps=10,
+            logging_steps=1000,
+            warmup_steps=100,
             logging_strategy="steps",
-            learning_rate=2e-4,
+            learning_rate=1e-6,
             fp16=False,
             bf16=False,
             group_by_length=True,
             logging_dir="/home/binit/fine_tune_LLama/logs",
             lr_scheduler_type="cosine",
-            max_steps=200,
+            # max_steps=200,
             save_total_limit=3  
         )
         logger.info("Training arguments configured.")
@@ -149,8 +163,8 @@ class Llama_trainer:
         # Initialize the trainer with the model, datasets, and training arguments
         trainer = SFTTrainer(
             model=self.model,
-            train_dataset=self.train_dataset,
-            eval_dataset=self.test_dataset,
+            train_dataset= self.train_dataset,
+            eval_dataset= self.test_dataset,
             peft_config=self.peft_config,
             tokenizer=self.tokenizer,
             args=self.training_arguments,
@@ -204,7 +218,7 @@ class Llama_trainer:
 
 if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-    text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
+    text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
 
     final_model_path = "Llama-3.2_3B_Nepali_language"

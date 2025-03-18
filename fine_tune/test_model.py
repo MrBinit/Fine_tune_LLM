@@ -30,13 +30,3 @@ def generate_response(user_input):
 user_query = "राणा शासनले नेपाल कसरी कब्जा गर्यो भनेर व्याख्या गर्न सक्नुहुन्छ?"
 response = generate_response(user_query)
 print("Chatbot:", response)
-
-# st.title("Nepali Language Chatbot")
-# st.write("Chat with the chatbot in Nepali language.")
-
-# user_query = st.text_input("Enter your query in Nepali:")
-
-# if user_query:
-#     response = generate_response(user_query)
-#     st.write("Chatbot: ", response)
-
