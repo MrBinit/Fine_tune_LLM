@@ -63,10 +63,12 @@ class Llama_trainer:
         """
         Load, shuffle, and format the dataset from a plain text file.
         """
-        train_arrow = "train_split.arrow"
-        test_arrow = "test_split.arrow"
+        train_arrow = "/home/binit/fine_tune_LLama/train_split"
+        test_arrow = "/home/binit/fine_tune_LLama/test_split"
         if os.path.exists(train_arrow) and os.path.exists(test_arrow):
             logger.info("Arrow files found. Loading dataset splits from disk. ")
+            ds = concatenate_datasets([Dataset.from_file(arrow_file) for arrow_file in arrow_files])
+
             self.train = load_from_disk(train_arrow)
             self.test = load_from_disk(test_arrow)
         else:
@@ -134,14 +136,14 @@ class Llama_trainer:
         """
         self.training_arguments = TrainingArguments(
             output_dir=self.new_model,
-            per_device_train_batch_size=4,
-            per_device_eval_batch_size=4,
+            per_device_train_batch_size=8,
+            per_device_eval_batch_size=8,
             gradient_accumulation_steps=2,
             optim="paged_adamw_32bit",
-            num_train_epochs=4,
+            num_train_epochs=5,
             evaluation_strategy="steps",
-            eval_steps=1000,
-            save_steps=1000,
+            eval_steps=5000,
+            save_steps=5000,
             logging_steps=1000,
             warmup_steps=100,
             logging_strategy="steps",
@@ -151,7 +153,6 @@ class Llama_trainer:
             group_by_length=True,
             logging_dir="/home/binit/fine_tune_LLama/logs",
             lr_scheduler_type="cosine",
-            # max_steps=200,
             save_total_limit=3  
         )
         logger.info("Training arguments configured.")
@@ -218,10 +219,11 @@ class Llama_trainer:
 
 if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
+    # text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
     text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
-    new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
+    new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned_test"
 
-    final_model_path = "Llama-3.2_3B_Nepali_language"
+    final_model_path = "Llama-3.2_3B_Nepali_language_test"
     # Create an instance of ChatbotTrainer
     trainer = Llama_trainer(base_model=base_model_path,
                                  txt_file=text_file_path,
@@ -230,13 +232,10 @@ if __name__ == '__main__':
     trainer.prepare_dataset()
     trainer.setup_peft()
     trainer.setup_training_arguments()
-
     # Train the model
     trainer.train()
 
     trainer.merge_model()
-
-
     # Generate a sample response from the fine-tuned model
     sample_user_message = "नेपालको इतिहासको बारेमा बताउन सक्नुहुन्छ?"
     response = trainer.generate_response(sample_user_message)

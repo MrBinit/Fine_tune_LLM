@@ -41,3 +41,15 @@ def generate_response(user_input):
 user_query = "राणा शासनले नेपाल कसरी कब्जा गर्यो भनेर व्याख्या गर्न सक्नुहुन्छ?"
 response = generate_response(user_query)
 print("Chatbot:", response)
+
+
+
+
+data size: 
+Train length: 94625899
+Test length: 23656475
+steps_per_epoch = 11,828,237
+base lr : 5e-4
+
+
+rm -rf ~/.cache/huggingface/
