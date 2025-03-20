@@ -2,7 +2,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, PeftModel
 import bitsandbytes as bnb
 import torch
-from datasets import load_dataset,  load_from_disk
+from datasets import load_dataset,  load_from_disk, Dataset, concatenate_datasets
 from trl import SFTTrainer, setup_chat_format
 import logging
 import os
@@ -29,11 +29,11 @@ class Llama_trainer:
         self.new_model = new_model
         self.seed = 65 
         self.instruction = "You are a chatbot who is trained for Nepalese language.\n"
-        self.tokenizer= AutoTokenizer.from_pretrained(self.base_model)
+        self.tokenizer= AutoTokenizer.from_pretrained(self.base_model, cache_dir=None)
         logger.info("Loaded tokenizer from base model.")
         self.model = None
-        self.train_dataset = None
-        self.test_dataset = None
+        self.train_dataset = '/home/binit/fine_tune_LLama/train_split/'
+        self.test_dataset = '/home/binit/fine_tune_LLama/train_split/'
 
     def setup_model(self):
         """
@@ -56,6 +56,7 @@ class Llama_trainer:
             device_map="auto",
             torch_dtype=torch_dtype,
             attn_implementation=attn_implementation,
+            cache_dir=None
         )
         logger.info("Loaded base model with 4-bit quantization.")
 
@@ -67,10 +68,18 @@ class Llama_trainer:
         test_arrow = "/home/binit/fine_tune_LLama/test_split"
         if os.path.exists(train_arrow) and os.path.exists(test_arrow):
             logger.info("Arrow files found. Loading dataset splits from disk. ")
-            ds = concatenate_datasets([Dataset.from_file(arrow_file) for arrow_file in arrow_files])
 
-            self.train = load_from_disk(train_arrow)
-            self.test = load_from_disk(test_arrow)
+            train_files =[os.path.join(self.train_dataset, f) for f in os.listdir(self.train_dataset) if f.endswith('.arrow')]
+            test_files =[os.path.join(self.test_dataset, f) for f in os.listdir(self.test_dataset) if f.endswith('.arrow')]
+
+            train_datasets = [Dataset.from_file(f) for f in train_files]
+            test_datasets = [Dataset.from_file(f) for f in test_files]
+
+            train_ds = concatenate_datasets(train_datasets)
+            test_ds = concatenate_datasets(test_datasets)
+
+            self.train = train_ds
+            self.test = test_ds
         else:
             logger.info("Arrow files not found. Loading dataset and creating train/test split.")
             dataset = load_dataset("text", data_files = self.txt_file, split="train").shuffle(seed = self.seed)
@@ -135,13 +144,13 @@ class Llama_trainer:
         Define training arguments for the fine-tuning process.
         """
         self.training_arguments = TrainingArguments(
-            output_dir=self.new_model,
-            per_device_train_batch_size=8,
-            per_device_eval_batch_size=8,
+            output_dir="./output",
+            per_device_train_batch_size=16,
+            per_device_eval_batch_size=16,
             gradient_accumulation_steps=2,
             optim="paged_adamw_32bit",
             num_train_epochs=5,
-            evaluation_strategy="steps",
+            eval_strategy="steps",
             eval_steps=5000,
             save_steps=5000,
             logging_steps=1000,
@@ -172,6 +181,7 @@ class Llama_trainer:
         )
         logger.info("Starting training...")
         trainer.train()
+
         logger.info("Training complete.")
 
         # Save the trained model and tokenizer
@@ -179,6 +189,7 @@ class Llama_trainer:
         self.tokenizer.save_pretrained(self.new_model)
 
         logger.info(f"Model and tokenizer saved to {self.new_model}.")
+
 
 
     def merge_model(self):
@@ -214,16 +225,13 @@ class Llama_trainer:
         return response
 
 
-
-
-
 if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-    # text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
-    text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
-    new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned_test"
-
-    final_model_path = "Llama-3.2_3B_Nepali_language_test"
+    text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
+    # text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
+    new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
+    final_model_path = "Llama-3.2_3B_Nepali_language"
+    
     # Create an instance of ChatbotTrainer
     trainer = Llama_trainer(base_model=base_model_path,
                                  txt_file=text_file_path,
@@ -234,6 +242,7 @@ if __name__ == '__main__':
     trainer.setup_training_arguments()
     # Train the model
     trainer.train()
+    torch.cuda.empty_cache()
 
     trainer.merge_model()
     # Generate a sample response from the fine-tuned model
