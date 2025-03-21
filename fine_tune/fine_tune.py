@@ -82,7 +82,7 @@ class Llama_trainer:
             self.test = test_ds
         else:
             logger.info("Arrow files not found. Loading dataset and creating train/test split.")
-            dataset = load_dataset("text", data_files = self.txt_file, split="train").shuffle(seed = self.seed)
+            dataset = load_dataset("text", data_files = self.txt_file, split="train", cache_dir=None).shuffle(seed = self.seed)
             dataset = dataset.map(self.format_chat_template, num_proc=1, load_from_cache_file=False)
             logger.info("Applied chat formatting to the dataset.")
             dataset_split = dataset.train_test_split(test_size=0.2, seed= self.seed)
@@ -90,9 +90,9 @@ class Llama_trainer:
             self.test_dataset = dataset_split["test"]
             logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
 
-            self.train_dataset.save_to_disk(train_arrow)
-            self.test_dataset.save_to_disk(test_arrow)
-            logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
+            # self.train_dataset.save_to_disk(train_arrow)
+            # self.test_dataset.save_to_disk(test_arrow)
+            # logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
 
 
 
