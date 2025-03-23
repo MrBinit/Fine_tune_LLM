@@ -175,7 +175,7 @@ class Llama_trainer:
 
         # Save the trained model and tokenizer
         trainer.model.save_pretrained(self.new_model)
-        self.tokenizer
+        trainer.tokenizer.save_pretrained(self.tokenizer)
 
 
     def merge_model(self):
