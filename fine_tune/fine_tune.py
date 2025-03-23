@@ -29,20 +29,18 @@ class Llama_trainer:
         self.new_model = new_model
         self.seed = 65 
         self.instruction = "You are a chatbot who is trained for Nepalese language.\n"
-        self.tokenizer= AutoTokenizer.from_pretrained(self.base_model, cache_dir=None)
-        logger.info("Loaded tokenizer from base model.")
         self.model = None
         self.train_dataset = '/home/binit/fine_tune_LLama/train_split/'
         self.test_dataset = '/home/binit/fine_tune_LLama/train_split/'
 
         self.tokenizer_dir = "/home/binit/fine_tune_LLama/tokenizer"
         if not os.path.exists(self.tokenizer_dir):
-            logger.info("Tokenizer not found. Loading tokenizer and saving it.")
+            logger.info("Tokenizer not found. Loading tokenizer and saving it. #########################")
             self.tokenizer = AutoTokenizer.from_pretrained(self.base_model, cache_dir=None)
         else:
             # Tokenizer exists, just load it from the custom directory
-            logger.info("Tokenizer already exists. Skipping tokenizer training.")
-            self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_dir)
+            logger.info("Tokenizer already exists. Skipping tokenizer training. ++++++++++++++++++++++++++++")
+            self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_dir, cache_dir=None)
 
     def setup_model(self):
         """
@@ -247,6 +245,7 @@ if __name__ == '__main__':
     trainer.prepare_dataset()
     trainer.setup_peft()
     trainer.setup_training_arguments()
+
     # Train the model
     trainer.train()
     torch.cuda.empty_cache()

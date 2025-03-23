@@ -11,3 +11,5 @@ llama-3.2-3b-it-Ecommerce-ChatBot
 .vocab
 *.txt
 Llama-3.2_3B_Nepali_language
+train_split
+test_split 
