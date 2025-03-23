@@ -27,20 +27,12 @@ class Llama_trainer:
         self.base_model = base_model
         self.txt_file = txt_file
         self.new_model = new_model
+        self.tokenizer = AutoTokenizer.from_pretrained(self.base_model, cache_dir=None)
         self.seed = 65 
         self.instruction = "You are a chatbot who is trained for Nepalese language.\n"
         self.model = None
         self.train_dataset = '/home/binit/fine_tune_LLama/train_split/'
-        self.test_dataset = '/home/binit/fine_tune_LLama/train_split/'
-
-        self.tokenizer_dir = "/home/binit/fine_tune_LLama/tokenizer"
-        if not os.path.exists(self.tokenizer_dir):
-            logger.info("Tokenizer not found. Loading tokenizer and saving it. #########################")
-            self.tokenizer = AutoTokenizer.from_pretrained(self.base_model, cache_dir=None)
-        else:
-            # Tokenizer exists, just load it from the custom directory
-            logger.info("Tokenizer already exists. Skipping tokenizer training. ++++++++++++++++++++++++++++")
-            self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_dir, cache_dir=None)
+        self.test_dataset = '/home/binit/fine_tune_LLama/test_split/'
 
     def setup_model(self):
         """
@@ -71,28 +63,27 @@ class Llama_trainer:
         """
         Load, shuffle, and format the dataset from a plain text file.
         """
-        train_path = "/home/binit/fine_tune_LLama/train_split"
-        test_path = "/home/binit/fine_tune_LLama/test_split"
+        if os.path.exists(self.train_dataset):
+            logger.info(f"Loading preprocessed dataset")
+            self.train_dataset = Dataset.load_from_disk(self.train_dataset)
+            self.test_dataset = Dataset.load_from_disk(self.test_dataset)
+        else:
+            logger.info("No Train and test split found. Loading dataset and creating train/test split.")
+            dataset = load_dataset("text", data_files=self.txt_file, split="train", cache_dir=None).shuffle(seed=self.seed)
+            dataset = dataset.map(self.format_chat_template, num_proc=1, load_from_cache_file=False)
+            logger.info("Applied chat formatting to the dataset.")
+            
+            # Split dataset into train and test
+            dataset_split = dataset.train_test_split(test_size=0.2, seed=self.seed)
+            self.train_dataset = dataset_split["train"]
+            self.test_dataset = dataset_split["test"]
+            
+            logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
 
-        if os.path.exists(train_path) and os.path.exists(test_path):
-            logger.info("Train and test splits already exist. Skipping dataset creation.")
-            self.train_dataset = load_from_disk(train_path)
-            self.test_dataset = load_from_disk(test_path)
-            return 
+            # Save the processed datasets to disk
+            self.train_dataset.save_to_disk(self.train_dataset)
+            self.test_dataset.save_to_disk(self.test_dataset)  
 
-        logger.info("No Train and test split found. Loading dataset and creating train/test split.")
-        dataset = load_dataset("text", data_files = self.txt_file, split="train", cache_dir=None).shuffle(seed = self.seed)
-        dataset = dataset.map(self.format_chat_template, num_proc=1, load_from_cache_file=False)
-        logger.info("Applied chat formatting to the dataset.")
-        dataset_split = dataset.train_test_split(test_size=0.2, seed= self.seed)
-        self.train_dataset = dataset_split["train"]
-        self.test_dataset = dataset_split["test"]
-        logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
-
-        self.train_dataset.save_to_disk(train_path)
-        self.test_dataset.save_to_disk(test_path)
-        
-        logger.info(f"Train dataset saved to {train_path}, Test dataset saved to {test_path}")
 
     def format_chat_template(self, row):
         """
@@ -133,15 +124,8 @@ class Llama_trainer:
         self.model, self.tokenizer = setup_chat_format(self.model, self.tokenizer)
         logger.info("Chat format set up for model and tokenizer.")
 
-        # Wrap the model using PEFT with the LoRA configuration
         self.model = get_peft_model(self.model, self.peft_config)
         logger.info("PEFT model created using LoRA.")
-
-        if not os.path.exists(self.tokenizer_dir):
-            logger.info("No tokenizer directory found so creating new....")
-            os.makedirs(self.tokenizer_dir, exist_ok = True)
-
-        self.tokenizer.save_pretrained(self.tokenizer_dir)
 
     
     def setup_training_arguments(self):
@@ -191,13 +175,8 @@ class Llama_trainer:
 
         # Save the trained model and tokenizer
         trainer.model.save_pretrained(self.new_model)
-        # if not os.path.exists(self.tokenizer_dir):
-        #     logger.info("No tokenizer directory found so creating new....")
-        #     os.makedirs(self.tokenizer_dir, exist_ok = True)
+        self.tokenizer
 
-        # self.tokenizer.save_pretrained(self.tokenizer_dir)
-
-        logger.info(f"Model and tokenizer saved to {self.tokenizer_dir} and {self.model}")
 
     def merge_model(self):
         if hasattr(self.model, "merge_and_unload"):
@@ -232,8 +211,8 @@ class Llama_trainer:
 
 if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-    # text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
-    text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
+    text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
+    # text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
     final_model_path = "Llama-3.2_3B_Nepali_language"
     
