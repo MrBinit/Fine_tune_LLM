@@ -67,7 +67,7 @@ class Llama_trainer:
             take_limit (int): Limit the number of examples to take from dataset (optional).
         """
         logger.info("Streaming and tokenizing dataset...")
-        dataset = load_dataset("text", data_files=self.txt_file, streaming=True, split="train")
+        dataset = load_dataset("text", data_files=self.txt_file, split="train")
         dataset = dataset.map(self.format_chat_template)
         dataset = Dataset.from_list(list(dataset))
 
