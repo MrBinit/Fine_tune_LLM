@@ -63,13 +63,22 @@ class Llama_trainer:
         """
         Load, shuffle, and format the dataset from a plain text file.
         """
-        if os.path.exists(self.train_dataset):
+        train_dataset_path = "/home/binit/fine_tune_LLama/train_dataset"
+        test_dataset_path = "/home/binit/fine_tune_LLama/test_dataset"
+
+
+        #i need to correct this train and test split variable anmes. I will do it. 
+        
+        # Check if preprocessed dataset exists
+        if os.path.exists(train_dataset_path) and os.path.exists(test_dataset_path):
             logger.info(f"Loading preprocessed dataset")
-            self.train_dataset = Dataset.load_from_disk(self.train_dataset)
-            self.test_dataset = Dataset.load_from_disk(self.test_dataset)
+            self.train_dataset = Dataset.load_from_disk(train_dataset_path) # Here i need to make changes
+            self.test_dataset = Dataset.load_from_disk(test_dataset_path) # here i need to  makes the changes. 
         else:
             logger.info("No Train and test split found. Loading dataset and creating train/test split.")
             dataset = load_dataset("text", data_files=self.txt_file, split="train", cache_dir=None).shuffle(seed=self.seed)
+            
+            # Apply formatting
             dataset = dataset.map(self.format_chat_template, num_proc=1, load_from_cache_file=False)
             logger.info("Applied chat formatting to the dataset.")
             
@@ -81,9 +90,8 @@ class Llama_trainer:
             logger.info(f"Train dataset size: {len(self.train_dataset)}, Test dataset size: {len(self.test_dataset)}")
 
             # Save the processed datasets to disk
-            self.train_dataset.save_to_disk(self.train_dataset)
-            self.test_dataset.save_to_disk(self.test_dataset)  
-
+            self.train_dataset.save_to_disk(train_dataset_path)  
+            self.test_dataset.save_to_disk(test_dataset_path)
 
     def format_chat_template(self, row):
         """
@@ -134,8 +142,8 @@ class Llama_trainer:
         """
         self.training_arguments = TrainingArguments(
             output_dir="./output",
-            per_device_train_batch_size=16,
-            per_device_eval_batch_size=16,
+            per_device_train_batch_size=8,
+            per_device_eval_batch_size=8,
             gradient_accumulation_steps=2,
             optim="paged_adamw_32bit",
             num_train_epochs=5,
@@ -175,8 +183,7 @@ class Llama_trainer:
 
         # Save the trained model and tokenizer
         trainer.model.save_pretrained(self.new_model)
-        trainer.tokenizer.save_pretrained(self.tokenizer)
-
+        self.tokenizer.save_pretrained(self.new_model)
 
     def merge_model(self):
         if hasattr(self.model, "merge_and_unload"):
@@ -211,8 +218,8 @@ class Llama_trainer:
 
 if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-    text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
-    # text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
+    # text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
+    text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
     final_model_path = "Llama-3.2_3B_Nepali_language"
     
