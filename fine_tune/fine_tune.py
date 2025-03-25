@@ -74,6 +74,11 @@ class Llama_trainer:
             logger.info(f"Loading preprocessed dataset")
             self.train_dataset = Dataset.load_from_disk(train_dataset_path) # Here i need to make changes
             self.test_dataset = Dataset.load_from_disk(test_dataset_path) # here i need to  makes the changes. 
+
+            # self.train_dataset = self.train_dataset.shuffle(seed=self.seed).select(range(int(0.1 * len(self.train_dataset))))
+            # logger.info(f"Using 10% of the training dataset: {len(self.train_dataset)} samples")
+
+
         else:
             logger.info("No Train and test split found. Loading dataset and creating train/test split.")
             dataset = load_dataset("text", data_files=self.txt_file, split="train", cache_dir=None).shuffle(seed=self.seed)
@@ -141,10 +146,10 @@ class Llama_trainer:
         Define training arguments for the fine-tuning process.
         """
         self.training_arguments = TrainingArguments(
-            output_dir="./output",
-            per_device_train_batch_size=8,
-            per_device_eval_batch_size=8,
-            gradient_accumulation_steps=2,
+            output_dir="/home/binit/fine_tune_LLama/output",
+            per_device_train_batch_size=4,
+            per_device_eval_batch_size=4,
+            gradient_accumulation_steps=4,
             optim="paged_adamw_32bit",
             num_train_epochs=5,
             eval_strategy="steps",
@@ -154,12 +159,12 @@ class Llama_trainer:
             warmup_steps=100,
             logging_strategy="steps",
             learning_rate=1e-6,
-            fp16=False,
+            fp16=True,
             bf16=False,
             group_by_length=True,
             logging_dir="/home/binit/fine_tune_LLama/logs",
             lr_scheduler_type="cosine",
-            save_total_limit=3  
+            save_total_limit=3
         )
         logger.info("Training arguments configured.")
 
@@ -219,7 +224,7 @@ class Llama_trainer:
 if __name__ == '__main__':
     base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
     # text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
-    text_file_path = "/home/binit/fine_tune_LLama/nepali_text.txt"
+    text_file_path = "/home/binit/fine_tune_LLama/nepali.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
     final_model_path = "Llama-3.2_3B_Nepali_language"
     
