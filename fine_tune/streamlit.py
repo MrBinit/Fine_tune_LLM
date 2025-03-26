@@ -1,10 +1,10 @@
-import os
-import torch
-import streamlit as st
+import gradio as gr
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 
-torch.classes.__path__ = [os.path.join(torch.__path__[0], torch.classes.__file__)]
 model_path = "/home/binit/fine_tune_LLama/fine_tune/Llama-3.2_3B_Nepali_language"
+
+
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 tokenizer.pad_token = tokenizer.eos_token
 
@@ -12,11 +12,11 @@ model = AutoModelForCausalLM.from_pretrained(
     model_path,
     torch_dtype=torch.float16,
     device_map="auto"
-)
-model = model.to_empty("cuda")
+).to("cuda")
 
 def generate_response(user_input):
-    instruction = """You are a Nepali chatbot and you are fluent in Nepalese language."""
+    instruction = """You are chatbot proficient in Nepalese Language."""
+    
     messages = [
         {"role": "system", "content": instruction},
         {"role": "user", "content": user_input}
@@ -25,14 +25,14 @@ def generate_response(user_input):
     inputs = tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
     outputs = model.generate(**inputs, max_new_tokens=500, num_return_sequences=1)
     response_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
     return response_text.split("assistant")[1].strip()
-    
-st.title("Nepali Language Chatbot")
-user_input = st.text_input("Enter your query in Nepali:")
-if st.button("Submit"):
-    if user_input:
-        response = generate_response(user_input)
-        st.write("Chatbot response: ", response)
-    else:
-        st.write("Please enter a query.")
+
+iface = gr.Interface(
+    fn=generate_response, 
+    inputs=gr.Textbox(label="Enter your question in Nepali"),
+    outputs=gr.Textbox(label="Chatbot Response"),
+    title="Nepali Language Chatbot",
+    description="Chat with the model in Nepali. The model is proficient in understanding and responding in Nepali."
+)
+
+iface.launch()

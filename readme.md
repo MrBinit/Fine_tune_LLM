@@ -53,3 +53,7 @@ base lr : 5e-4
 
 
 rm -rf ~/.cache/huggingface/
+
+
+monitor tensorboard: tensorboard --logdir=/home/binit/fine_tune_LLama/logs
+
