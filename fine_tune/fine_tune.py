@@ -1,3 +1,6 @@
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, TrainingArguments
 from peft import LoraConfig, get_peft_model, PeftModel
 import bitsandbytes as bnb
@@ -5,7 +8,6 @@ import torch
 from datasets import load_dataset,  load_from_disk, Dataset
 from trl import SFTTrainer, setup_chat_format
 import logging
-import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,6 +60,11 @@ class Llama_trainer:
             cache_dir=None
         )
         logger.info("Loaded base model with 4-bit quantization.")
+
+        self.model.config.gradient_checkpointing = True
+        self.model.enable_input_require_grads() 
+        logger.info("Gradient checkpointing enabled.")
+
 
     def prepare_dataset(self):
         """
@@ -147,9 +154,9 @@ class Llama_trainer:
         """
         self.training_arguments = TrainingArguments(
             output_dir="/home/binit/fine_tune_LLama/output",
-            per_device_train_batch_size=4,
+            per_device_train_batch_size=8,
             per_device_eval_batch_size=4,
-            gradient_accumulation_steps=4,
+            gradient_accumulation_steps=8,
             optim="paged_adamw_32bit",
             num_train_epochs=5,
             eval_strategy="steps",
@@ -222,9 +229,9 @@ class Llama_trainer:
 
 
 if __name__ == '__main__':
-    base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
-    # text_file_path = "/home/binit/fine_tune_LLama/extracted_text.txt"
-    text_file_path = "/home/binit/fine_tune_LLama/nepali.txt"
+    base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2_3B"
+    text_file_path = "/home/binit/fine_tune_LLama/extracted_text_sample_test.txt"
+    # text_file_path = "/home/binit/fine_tune_LLama/split_text_output.txt"
     new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
     final_model_path = "Llama-3.2_3B_Nepali_language"
     
@@ -252,3 +259,6 @@ if __name__ == '__main__':
     trainer.model.save_pretrained(final_model_path)
     trainer.tokenizer.save_pretrained(final_model_path)
     logger.info(f"Final merged model and tokenizer saved to {final_model_path}.")
+
+
+# 47034

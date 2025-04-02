@@ -57,3 +57,11 @@ rm -rf ~/.cache/huggingface/
 
 monitor tensorboard: tensorboard --logdir=/home/binit/fine_tune_LLama/logs
 
+
+total line: 118282375
+
+
+
+5% = 5914118
+
+1% =  2365647

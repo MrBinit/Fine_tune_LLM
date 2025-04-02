@@ -2,8 +2,8 @@
 from datasets import Dataset, DatasetDict
 from huggingface_hub import HfApi, Repository
 
-repo_name = "MrBinit/nepali_dataset_text"
-dataset_path = "/home/binit/fine_tune_LLama/compressed.zip" 
+repo_name = "MrBinit/nepali_dataset_text_cleaned"
+dataset_path = "/home/binit/fine_tune_LLama/split_nepali_text_output.zip" 
 repo_url = f"https://huggingface.co/datasets/{repo_name}"
 
 api = HfApi()
