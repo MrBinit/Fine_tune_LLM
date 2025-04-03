@@ -22,7 +22,7 @@ def generate_response(user_input):
     ]
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
-    outputs = model.generate(**inputs, max_new_tokens=500, num_return_sequences=1)
+    outputs = model.generate(**inputs, max_new_tokens=1000, num_return_sequences=1)
     response_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return response_text.split("assistant")[1].strip()
 

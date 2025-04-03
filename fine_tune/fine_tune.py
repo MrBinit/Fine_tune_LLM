@@ -61,6 +61,12 @@ class Llama_trainer:
         )
         logger.info("Loaded base model with 4-bit quantization.")
 
+        if torch.cuda.is_available():
+            self.model.to(torch.device("cuda"))
+        else:
+            self.model.to(torch.device("cpu"))
+
+        self.model.config.use_cache = False
         self.model.config.gradient_checkpointing = True
         self.model.enable_input_require_grads() 
         logger.info("Gradient checkpointing enabled.")
@@ -220,7 +226,7 @@ class Llama_trainer:
             {"role": "user", "content": user_message}
         ]
         prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self.tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to("cuda")
+        inputs = self.tokenizer(prompt, return_tensors='pt', padding=True, truncation=True).to(self.model.device)
         outputs = self.model.generate(**inputs, max_new_tokens=150, num_return_sequences=1)
         decoded_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         # Extract and return the assistant's response (split based on your prompt format)
@@ -229,11 +235,11 @@ class Llama_trainer:
 
 
 if __name__ == '__main__':
-    base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2_3B"
+    base_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B"
     text_file_path = "/home/binit/fine_tune_LLama/extracted_text_sample_test.txt"
     # text_file_path = "/home/binit/fine_tune_LLama/split_text_output.txt"
-    new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B_fined_tuned"
-    final_model_path = "Llama-3.2_3B_Nepali_language"
+    new_model_path = "/home/binit/fine_tune_LLama/Llama-3.2-3B-fined_tuned"
+    final_model_path = "/home/binit/fine_tune_LLama/Llama-3.2_3B-Nepali_language"
     
     # Create an instance of ChatbotTrainer
     trainer = Llama_trainer(base_model=base_model_path,
@@ -260,5 +266,3 @@ if __name__ == '__main__':
     trainer.tokenizer.save_pretrained(final_model_path)
     logger.info(f"Final merged model and tokenizer saved to {final_model_path}.")
 
-
-# 47034
